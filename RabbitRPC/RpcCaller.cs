@@ -12,6 +12,9 @@ using System.Threading.Tasks;
 
 namespace RabbitRPC
 {
+    /// <summary>
+    /// Represents an RPC caller with the ability to call methods on a remote <see cref="RpcService"/>.
+    /// </summary>
     public sealed class RpcCaller : IDisposable
     {
         private readonly IDictionary<string, TaskCompletionSource<JsonElement>> RunningCalls = new Dictionary<string, TaskCompletionSource<JsonElement>>();
@@ -20,10 +23,27 @@ namespace RabbitRPC
 
         private bool IsDisposed;
 
+        /// <summary>
+        /// The channel this caller uses.
+        /// </summary>
         public IModel Channel { get; }
+
+        /// <summary>
+        /// The outbound queue name this caller uses.
+        /// </summary>
         public string QueueName { get; }
+
+        /// <summary>
+        /// The callback queue name this caller uses.
+        /// </summary>
         public string CallbackQueueName { get; }
 
+        /// <summary>
+        /// Instantiates a new <see cref="RpcCaller"/> instance.
+        /// </summary>
+        /// <param name="channel">The channel to use</param>
+        /// <param name="queueName">The outbound queue name to use</param>
+        /// <param name="disposeChannel">If true, <paramref name="channel"/> will get disposed when this <see cref="RpcCaller"/> instance is</param>
         public RpcCaller(IModel channel, string queueName, bool disposeChannel = false)
         {
             this.Channel = channel;
@@ -52,15 +72,62 @@ namespace RabbitRPC
             }
         }
 
-        public Task<object> Call(string method, Type returnType, params object[] args)
-            => Call(method, returnType, CancellationToken.None, args);
-
+        /// <summary>
+        /// Calls <paramref name="method"/> on a remote service with <paramref name="args"/> and no return value.
+        /// </summary>
+        /// <param name="method">The remote method's name</param>
+        /// <param name="args">The method's arguments</param>
         public Task Call(string method, params object[] args)
             => Call<object>(method, CancellationToken.None, args);
 
+        /// <summary>
+        /// Calls <paramref name="method"/> on a remote service with <paramref name="args"/> and no return value.
+        /// </summary>
+        /// <param name="method">The remote method's name</param>
+        /// <param name="cancellationToken">The cancellation token to use for cancelling the call</param>
+        /// <param name="args">The method's arguments</param>
         public Task Call(string method, CancellationToken cancellationToken, params object[] args)
             => Call<object>(method, cancellationToken, args);
 
+        /// <summary>
+        /// Calls <paramref name="method"/> on a remote service with <paramref name="args"/> that returns a value
+        /// of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The return value's type</typeparam>
+        /// <param name="method">The remote method's name</param>
+        /// <param name="args">The method's arguments</param>
+        public async Task<T> Call<T>(string method, params object[] args)
+            => (T)await Call(method, typeof(T), CancellationToken.None, args);
+
+        /// <summary>
+        /// Calls <paramref name="method"/> on a remote service with <paramref name="args"/> that returns a value
+        /// of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The return value's type</typeparam>
+        /// <param name="method">The remote method's name</param>
+        /// <param name="cancellationToken">The cancellation token to use for cancelling the call</param>
+        /// <param name="args">The method's arguments</param>
+        public async Task<T> Call<T>(string method, CancellationToken cancellationToken, params object[] args)
+            => (T)await Call(method, typeof(T), cancellationToken, args);
+
+        /// <summary>
+        /// Calls <paramref name="method"/> on a remote service with <paramref name="args"/> that returns a value
+        /// of type <paramref name="returnType"/>.
+        /// </summary>
+        /// <param name="method">The remote method's name</param>
+        /// <param name="returnType">The return value's type</param>
+        /// <param name="args">The method's arguments</param>
+        public Task<object> Call(string method, Type returnType, params object[] args)
+            => Call(method, returnType, CancellationToken.None, args);
+
+        /// <summary>
+        /// Calls <paramref name="method"/> on a remote service with <paramref name="args"/> that returns a value
+        /// of type <paramref name="returnType"/>.
+        /// </summary>
+        /// <param name="method">The remote method's name</param>
+        /// <param name="returnType">The return value's type</param>
+        /// <param name="cancellationToken">The cancellation token to use for cancelling the call</param>
+        /// <param name="args">The method's arguments</param>
         public async Task<object> Call(string method, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
             CheckDisposed();
@@ -100,12 +167,6 @@ namespace RabbitRPC
             return JsonSerializer.Deserialize(bufferWriter.GetSpan(), returnType);
         }
 
-        public async Task<T> Call<T>(string method, params object[] args)
-            => (T)await Call(method, typeof(T), CancellationToken.None, args);
-
-        public async Task<T> Call<T>(string method, CancellationToken cancellationToken, params object[] args)
-            => (T)await Call(method, typeof(T), cancellationToken, args);
-
         /// <summary>
         /// Creates a proxy type for this queue. If <typeparamref name="T"/> is an interface, every method
         /// will be overriden to call <see cref="Call(string, Type, object[])"/>. If it isn't an interface,
@@ -126,6 +187,7 @@ namespace RabbitRPC
             return impl.Finish();
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             CheckDisposed();

@@ -1,6 +1,6 @@
-﻿namespace RabbitRPC
+﻿namespace RabbitRPC.Internal
 {
-    public class RpcRequest
+    internal class RpcRequest
     {
         public string MethodName { get; set; }
         public object[] Arguments { get; set; }

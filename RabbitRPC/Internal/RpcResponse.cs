@@ -1,6 +1,6 @@
-﻿namespace RabbitRPC
+﻿namespace RabbitRPC.Internal
 {
-    public class RpcResponse
+    internal class RpcResponse
     {
         public object ReturnData { get; set; }
     }

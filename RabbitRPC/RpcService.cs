@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitRPC.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,20 +10,42 @@ using System.Text.Json;
 
 namespace RabbitRPC
 {
+    /// <summary>
+    /// Represents an RPC service whose methods a remote <see cref="RpcCaller"/> can call.
+    /// </summary>
     public abstract class RpcService
     {
-        protected internal readonly IDictionary<string, MethodInfo> Methods;
+        /// <summary>
+        /// The method that this service has.
+        /// </summary>
+        protected internal IDictionary<string, MethodInfo> Methods { get; }
 
+        /// <summary>
+        /// The queue name that will be used by default. This is equal to the type's full name, replacing dots
+        /// with underscores.
+        /// </summary>
         public string DefaultQueueName { get; }
 
+        /// <summary>
+        /// Instantiates a new <see cref="RpcService"/> instance.
+        /// </summary>
         protected RpcService()
         {
             DefaultQueueName = this.GetType().FullName.Replace('.', '_');
             Methods = this.GetType().GetMethods().ToDictionary(o => o.Name);
         }
 
+        /// <summary>
+        /// Binds this service to a <paramref name="channel"/>, using the default queue name.
+        /// </summary>
+        /// <param name="channel">The channel to bind this service to</param>
         public void BindTo(IModel channel) => BindTo(channel, DefaultQueueName);
 
+        /// <summary>
+        /// Binds this service to a <paramref name="channel"/>, using a <paramref name="queueName"/>.
+        /// </summary>
+        /// <param name="channel">The channel to bind this service to</param>
+        /// <param name="queueName">The queue name to bind this service to</param>
         public void BindTo(IModel channel, string queueName)
         {
             channel.QueueDeclare(queueName);
