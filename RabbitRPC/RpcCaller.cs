@@ -13,11 +13,10 @@ namespace RabbitRPC
 {
     public sealed class RpcCaller
     {
-        private readonly IModel Channel;
-        private readonly string QueueName;
-
         private readonly IDictionary<string, TaskCompletionSource<JsonElement>> RunningCalls = new Dictionary<string, TaskCompletionSource<JsonElement>>();
 
+        public IModel Channel { get; }
+        public string QueueName { get; }
         public string CallbackQueueName { get; }
 
         public RpcCaller(IModel channel, string queueName)
