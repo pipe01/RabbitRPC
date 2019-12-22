@@ -1,4 +1,5 @@
 ﻿using ClassImpl;
+using Microsoft.IO;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
@@ -18,6 +19,7 @@ namespace RabbitRPC
         private readonly IModel Channel;
         private readonly string QueueName;
 
+        private readonly RecyclableMemoryStreamManager MemoryStreamManager = new RecyclableMemoryStreamManager();
         private readonly IDictionary<string, TaskCompletionSource<JsonElement>> RunningCalls = new Dictionary<string, TaskCompletionSource<JsonElement>>();
 
         public string CallbackQueueName { get; }
@@ -82,11 +84,18 @@ namespace RabbitRPC
             using (cancellationToken.Register(() => tcs.SetCanceled()))
                 returnElement = await tcs.Task;
 
-            var bufferWriter = new ArrayBufferWriter<byte>();
+            IBufferWriter<byte> bufferWriter;
+
+#if NETSTANDARD2_1 || NETCOREAPP3_0
+            bufferWriter = new ArrayBufferWriter<byte>();
+#else
+            bufferWriter = new ArrayBufferWriter();
+#endif
+
             using (var writer = new Utf8JsonWriter(bufferWriter))
                 returnElement.WriteTo(writer);
 
-            return JsonSerializer.Deserialize(bufferWriter.WrittenSpan, returnType);
+            return JsonSerializer.Deserialize(bufferWriter.GetSpan(), returnType);
         }
 
         public async Task<T> Call<T>(string method, params object[] args)
