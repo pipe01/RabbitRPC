@@ -84,6 +84,9 @@ namespace RabbitRPC
             using (cancellationToken.Register(() => tcs.SetCanceled()))
                 returnElement = await tcs.Task;
 
+            if (returnElement.ValueKind == JsonValueKind.Null)
+                return null;
+
 #if NETSTANDARD2_1 || NETCOREAPP3_0
             IBufferWriter<byte> bufferWriter = new ArrayBufferWriter<byte>();
 #else
