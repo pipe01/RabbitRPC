@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29609.76
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RabbitRPC", "RabbitRPC\RabbitRPC.csproj", "{BF7AFD64-F35E-407D-86BD-D1C11A967E5B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "Tester\Tester.csproj", "{8331B134-8C41-407C-9311-822F435711B5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BF7AFD64-F35E-407D-86BD-D1C11A967E5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF7AFD64-F35E-407D-86BD-D1C11A967E5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF7AFD64-F35E-407D-86BD-D1C11A967E5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF7AFD64-F35E-407D-86BD-D1C11A967E5B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8331B134-8C41-407C-9311-822F435711B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8331B134-8C41-407C-9311-822F435711B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8331B134-8C41-407C-9311-822F435711B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8331B134-8C41-407C-9311-822F435711B5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9B83A011-D9DF-4AFC-BB9B-C6E5747AAB06}
+	EndGlobalSection
+EndGlobal
