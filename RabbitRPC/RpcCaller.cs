@@ -1,14 +1,11 @@
 ﻿using ClassImpl;
-using Microsoft.IO;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,7 +16,6 @@ namespace RabbitRPC
         private readonly IModel Channel;
         private readonly string QueueName;
 
-        private readonly RecyclableMemoryStreamManager MemoryStreamManager = new RecyclableMemoryStreamManager();
         private readonly IDictionary<string, TaskCompletionSource<JsonElement>> RunningCalls = new Dictionary<string, TaskCompletionSource<JsonElement>>();
 
         public string CallbackQueueName { get; }
@@ -53,7 +49,7 @@ namespace RabbitRPC
 
         public Task<object> Call(string method, Type returnType, params object[] args)
             => Call(method, returnType, CancellationToken.None, args);
-        
+
         public Task Call(string method, params object[] args)
             => Call<object>(method, CancellationToken.None, args);
 
@@ -99,7 +95,7 @@ namespace RabbitRPC
 
         public async Task<T> Call<T>(string method, params object[] args)
             => (T)await Call(method, typeof(T), CancellationToken.None, args);
-        
+
         public async Task<T> Call<T>(string method, CancellationToken cancellationToken, params object[] args)
             => (T)await Call(method, typeof(T), cancellationToken, args);
 
