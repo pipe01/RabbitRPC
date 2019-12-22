@@ -66,8 +66,6 @@ namespace RabbitRPC
             props.ReplyTo = CallbackQueueName;
             props.CorrelationId = Guid.NewGuid().ToString();
 
-            Console.WriteLine(props.CorrelationId);
-
             var tcs = new TaskCompletionSource<JsonElement>();
             RunningCalls.Add(props.CorrelationId, tcs);
 
