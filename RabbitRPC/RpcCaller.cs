@@ -16,6 +16,7 @@ namespace RabbitRPC
     {
         private readonly IDictionary<string, TaskCompletionSource<JsonElement>> RunningCalls = new Dictionary<string, TaskCompletionSource<JsonElement>>();
         private readonly bool DisposeChannel;
+        private readonly EventingBasicConsumer Consumer;
 
         private bool IsDisposed;
 
@@ -32,10 +33,10 @@ namespace RabbitRPC
             channel.QueueDeclare(queueName);
             CallbackQueueName = channel.QueueDeclare().QueueName;
 
-            var consumer = new EventingBasicConsumer(channel);
-            consumer.Received += this.Consumer_Received;
+            this.Consumer = new EventingBasicConsumer(channel);
+            this.Consumer.Received += this.Consumer_Received;
 
-            channel.BasicConsume(consumer, CallbackQueueName, autoAck: false);
+            channel.BasicConsume(Consumer, CallbackQueueName, autoAck: false);
         }
 
         private void Consumer_Received(object sender, BasicDeliverEventArgs e)
@@ -128,6 +129,9 @@ namespace RabbitRPC
         public void Dispose()
         {
             CheckDisposed();
+
+            Channel.BasicCancel(Consumer.ConsumerTag);
+            Consumer.Received -= Consumer_Received;
 
             Channel.QueueDelete(CallbackQueueName);
 
