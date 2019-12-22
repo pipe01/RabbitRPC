@@ -11,18 +11,22 @@ using System.Threading.Tasks;
 
 namespace RabbitRPC
 {
-    public sealed class RpcCaller
+    public sealed class RpcCaller : IDisposable
     {
         private readonly IDictionary<string, TaskCompletionSource<JsonElement>> RunningCalls = new Dictionary<string, TaskCompletionSource<JsonElement>>();
+        private readonly bool DisposeChannel;
+
+        private bool IsDisposed;
 
         public IModel Channel { get; }
         public string QueueName { get; }
         public string CallbackQueueName { get; }
 
-        public RpcCaller(IModel channel, string queueName)
+        public RpcCaller(IModel channel, string queueName, bool disposeChannel = false)
         {
             this.Channel = channel;
             this.QueueName = queueName;
+            this.DisposeChannel = disposeChannel;
 
             channel.QueueDeclare(queueName);
             CallbackQueueName = channel.QueueDeclare().QueueName;
@@ -57,6 +61,8 @@ namespace RabbitRPC
 
         public async Task<object> Call(string method, Type returnType, CancellationToken cancellationToken, params object[] args)
         {
+            CheckDisposed();
+
             var props = Channel.CreateBasicProperties();
             props.ReplyTo = CallbackQueueName;
             props.CorrelationId = Guid.NewGuid().ToString();
@@ -106,6 +112,8 @@ namespace RabbitRPC
         /// <typeparam name="T">The type of the proxy to create</typeparam>
         public T CreateProxy<T>()
         {
+            CheckDisposed();
+
             var impl = new Implementer<T>();
 
             foreach (var item in impl.Methods.Where(o => o.DeclaringType == typeof(T)))
@@ -114,6 +122,24 @@ namespace RabbitRPC
             }
 
             return impl.Finish();
+        }
+
+        public void Dispose()
+        {
+            CheckDisposed();
+
+            Channel.QueueDelete(CallbackQueueName);
+
+            if (DisposeChannel)
+                Channel.Dispose();
+
+            IsDisposed = true;
+        }
+
+        private void CheckDisposed()
+        {
+            if (IsDisposed)
+                throw new ObjectDisposedException(null);
         }
     }
 }
