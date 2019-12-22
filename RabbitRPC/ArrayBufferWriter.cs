@@ -1,5 +1,6 @@
 ﻿#if !NETSTANDARD2_1 && !NETCOREAPP3_0
 
+//https://gist.github.com/ahsonkhan/c76a1cc4dc7107537c3fdc0079a68b35
 using System;
 using System.Buffers;
 using System.Diagnostics;
