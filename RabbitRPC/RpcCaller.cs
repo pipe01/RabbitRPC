@@ -1,6 +1,7 @@
 ﻿using ClassImpl;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitRPC.Internal;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -68,7 +69,7 @@ namespace RabbitRPC
             props.CorrelationId = Guid.NewGuid().ToString();
 
             var tcs = new TaskCompletionSource<JsonElement>();
-            RunningCalls.Add(props.CorrelationId, tcs);
+            using var _ = RunningCalls.AddThenRemove(props.CorrelationId, tcs);
 
             var req = new RpcRequest
             {

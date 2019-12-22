@@ -8,7 +8,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RabbitRPC
+namespace RabbitRPC.Internal
 {
     internal class ArrayBufferWriter : IBufferWriter<byte>, IDisposable
     {
