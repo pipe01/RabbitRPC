@@ -84,12 +84,10 @@ namespace RabbitRPC
             using (cancellationToken.Register(() => tcs.SetCanceled()))
                 returnElement = await tcs.Task;
 
-            IBufferWriter<byte> bufferWriter;
-
 #if NETSTANDARD2_1 || NETCOREAPP3_0
-            bufferWriter = new ArrayBufferWriter<byte>();
+            IBufferWriter<byte> bufferWriter = new ArrayBufferWriter<byte>();
 #else
-            bufferWriter = new ArrayBufferWriter();
+            using var bufferWriter = new ArrayBufferWriter();
 #endif
 
             using (var writer = new Utf8JsonWriter(bufferWriter))
