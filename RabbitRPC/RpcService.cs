@@ -31,8 +31,13 @@ namespace RabbitRPC
         /// </summary>
         protected RpcService()
         {
-            DefaultQueueName = this.GetType().FullName.Replace('.', '_');
-            Methods = this.GetType().GetMethods().ToDictionary(o => o.Name);
+            var thisType = this.GetType();
+            DefaultQueueName = thisType.FullName.Replace('.', '_');
+            Methods = thisType.GetMethods()
+                .Where(o => o.DeclaringType == thisType)
+                .GroupBy(o => o.Name)
+                .Select(o => o.First()) //Filter out overloaded methods
+                .ToDictionary(o => o.Name);
         }
 
         /// <summary>
