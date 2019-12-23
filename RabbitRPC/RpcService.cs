@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace RabbitRPC
 {
@@ -56,7 +57,7 @@ namespace RabbitRPC
             channel.QueueDeclare(queueName);
 
             var consumer = new EventingBasicConsumer(channel);
-            consumer.Received += (sender, e) =>
+            consumer.Received += async (sender, e) =>
             {
                 var body = Newtonsoft.Json.JsonConvert.DeserializeObject<RpcRequest>(Encoding.UTF8.GetString(e.Body));
 
@@ -66,6 +67,16 @@ namespace RabbitRPC
                     var args = body.Arguments.Select((o, i) => Convert.ChangeType(o, methodParams[i].ParameterType)).ToArray();
 
                     var returnVal = method.Invoke(this, args);
+
+                    if (returnVal is Task task)
+                    {
+                        await task;
+
+                        if (task.GetType().IsGenericType)
+                            returnVal = task.GetType().GetProperty("Result").GetValue(task);
+                        else
+                            returnVal = null;
+                    }
 
                     var props = channel.CreateBasicProperties();
                     props.CorrelationId = e.BasicProperties.CorrelationId;

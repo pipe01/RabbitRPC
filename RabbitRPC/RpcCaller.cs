@@ -17,7 +17,7 @@ namespace RabbitRPC
     /// </summary>
     public sealed class RpcCaller : IDisposable
     {
-        private readonly IDictionary<string, TaskCompletionSource<JsonElement>> RunningCalls = new Dictionary<string, TaskCompletionSource<JsonElement>>();
+        private readonly IDictionary<string, TaskCompletionSource<byte[]>> RunningCalls = new Dictionary<string, TaskCompletionSource<byte[]>>();
         private readonly bool DisposeChannel;
         private readonly EventingBasicConsumer Consumer;
 
@@ -63,9 +63,7 @@ namespace RabbitRPC
         {
             if (RunningCalls.TryGetValue(e.BasicProperties.CorrelationId, out var tcs))
             {
-                var jsonDoc = JsonDocument.Parse(e.Body);
-
-                tcs.TrySetResult(jsonDoc.RootElement);
+                tcs.TrySetResult(e.Body);
 
                 RunningCalls.Remove(e.BasicProperties.CorrelationId);
                 Channel.BasicAck(e.DeliveryTag, false);
@@ -136,7 +134,7 @@ namespace RabbitRPC
             props.ReplyTo = CallbackQueueName;
             props.CorrelationId = Guid.NewGuid().ToString();
 
-            var tcs = new TaskCompletionSource<JsonElement>();
+            var tcs = new TaskCompletionSource<byte[]>();
             using var _ = RunningCalls.AddThenRemove(props.CorrelationId, tcs);
 
             var req = new RpcRequest
@@ -147,24 +145,15 @@ namespace RabbitRPC
 
             Channel.BasicPublish("", QueueName, props, JsonSerializer.SerializeToUtf8Bytes(req));
 
-            JsonElement returnElement;
+            byte[] returnData;
 
             using (cancellationToken.Register(() => tcs.SetCanceled()))
-                returnElement = await tcs.Task;
+                returnData = await tcs.Task;
 
-            if (returnElement.ValueKind == JsonValueKind.Null)
-                return null;
+            if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+                returnType = returnType.GenericTypeArguments[0];
 
-#if NETSTANDARD2_1 || NETCOREAPP3_0
-            IBufferWriter<byte> bufferWriter = new ArrayBufferWriter<byte>();
-#else
-            using var bufferWriter = new ArrayBufferWriter();
-#endif
-
-            using (var writer = new Utf8JsonWriter(bufferWriter))
-                returnElement.WriteTo(writer);
-
-            return JsonSerializer.Deserialize(bufferWriter.GetSpan(), returnType);
+            return JsonSerializer.Deserialize(returnData, returnType);
         }
 
         /// <summary>
@@ -181,7 +170,35 @@ namespace RabbitRPC
 
             foreach (var item in impl.Methods.Where(o => o.DeclaringType == typeof(T)))
             {
-                impl.Member<object>(item).Callback(args => Call(item.Name, item.ReturnType, args.Values.ToArray()).Result);
+                var returnType = item.ReturnType;
+
+                if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+                    returnType = returnType.GenericTypeArguments[0];
+
+                impl.Member(item).Callback(args =>
+                {
+                    if (typeof(Task).IsAssignableFrom(item.ReturnType))
+                    {
+                        var callMethod = this
+                                    .GetType()
+#if NETSTANDARD2_1 || NETCOREAPP3_0
+                                    .GetMethod("Call", 1, new[] { typeof(string), typeof(object[]) })
+#else
+                                    .GetMethods() 
+                                    .Single(o => o.ContainsGenericParameters && o
+                                        .GetParameters()
+                                        .Select(o => o.ParameterType)
+                                        .SequenceEqual(new[] { typeof(string), typeof(object[]) }))
+#endif
+                                    .MakeGenericMethod(returnType);
+
+                        return callMethod.Invoke(this, new object[] { item.Name, args.Values.ToArray() });
+                    }
+                    else
+                    {
+                        return Call(item.Name, returnType, args.Values.ToArray()).Result;
+                    }
+                });
             }
 
             return impl.Finish();
