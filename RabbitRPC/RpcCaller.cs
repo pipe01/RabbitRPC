@@ -44,13 +44,16 @@ namespace RabbitRPC
         /// <param name="channel">The channel to use</param>
         /// <param name="queueName">The outbound queue name to use</param>
         /// <param name="disposeChannel">If true, <paramref name="channel"/> will get disposed when this <see cref="RpcCaller"/> instance is</param>
-        public RpcCaller(IModel channel, string queueName, bool disposeChannel = false)
+        /// <param name="declareQueue">If true, the queue will be declared on <paramref name="channel"/></param>
+        public RpcCaller(IModel channel, string queueName, bool disposeChannel = false, bool declareQueue = false)
         {
             this.Channel = channel;
             this.QueueName = queueName;
             this.DisposeChannel = disposeChannel;
 
-            channel.QueueDeclare(queueName);
+            if (declareQueue)
+                channel.QueueDeclare(queueName);
+
             CallbackQueueName = channel.QueueDeclare().QueueName;
 
             this.Consumer = new EventingBasicConsumer(channel);

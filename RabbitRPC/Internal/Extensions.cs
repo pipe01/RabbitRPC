@@ -32,13 +32,5 @@ namespace RabbitRPC.Internal
             dic.Add(key, value);
             return new DictionaryRemover<TKey, TValue>(key, dic);
         }
-
-        public static Type GetFirstGenericArg(this Type type)
-        {
-            if (!type.IsGenericType)
-                return null;
-
-            return type.GetGenericArguments()[0];
-        }
     }
 }
